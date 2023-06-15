@@ -1,8 +1,10 @@
 import streamlit as st
 import pandas as pd
 from wordcloud import WordCloud, ImageColorGenerator
+import seaborn as sns
 import numpy as np
 from PIL import Image
+from collections import Counter
 import io
 import nltk
 import os
@@ -10,7 +12,10 @@ import string
 from nltk.corpus import stopwords
 from nltk.sentiment import SentimentIntensityAnalyzer
 from collections import Counter
-
+import matplotlib.pyplot as plt
+import seaborn as sns
+from nltk.tokenize import word_tokenize, sent_tokenize
+from heapq import nlargest
 nltk.download('vader_lexicon')
 nltk.download('stopwords')
 nltk.download('punkt')
@@ -27,9 +32,49 @@ def render_sidebar(df):
     selected_columns = st.sidebar.multiselect("Select columns for NLP analysis", df.columns)
 
     st.sidebar.title("NLP Analysis")
-    analysis_option = st.sidebar.selectbox("Select NLP analysis option", ["None", "Sentiment Analysis", "Wordcloud", "Frequency"])
+    analysis_option = st.sidebar.selectbox("Select NLP analysis option", ["None", "Sentiment Analysis", 
+                                                                          "Emotions", "Wordcloud", "Frequency","Text Summarization"])
 
     return selected_columns, analysis_option
+
+def generate_summary(text, num_sentences=3):
+    # Tokenize the text into sentences
+    sentences = sent_tokenize(text)
+
+    # Remove stopwords from sentences
+    stop_words = set(stopwords.words('english'))
+    word_frequencies = {}
+    for word in word_tokenize(text):
+        if word.lower() not in stop_words:
+            if word not in word_frequencies:
+                word_frequencies[word] = 1
+            else:
+                word_frequencies[word] += 1
+
+    # Calculate sentence scores based on word frequencies
+    sentence_scores = {}
+    for sentence in sentences:
+        for word in word_tokenize(sentence.lower()):
+            if word in word_frequencies:
+                if sentence not in sentence_scores:
+                    sentence_scores[sentence] = word_frequencies[word]
+                else:
+                    sentence_scores[sentence] += word_frequencies[word]
+
+    # Get the top N sentences with highest scores
+    summary_sentences = nlargest(num_sentences, sentence_scores, key=sentence_scores.get)
+    summary = ' '.join(summary_sentences)
+
+    return summary
+
+def perform_text_summarization(df, text_column):
+    st.subheader("Text Summarization")
+
+    selected_text = " ".join(df[text_column].astype(str))
+
+    if st.button("Generate Summary"):
+        summary = generate_summary(selected_text)
+        st.write(summary)
 
 def generate_wordcloud(df, selected_columns, mask_image_path):
     text = ""
@@ -67,7 +112,7 @@ def generate_frequency_analysis(df, selected_columns):
 
     word_list = text.split()
     word_counter = Counter(word_list)
-    word_counter = dict(word_counter.most_common())
+    word_counter = dict(word_counter.most_common(10))  # Select top 10 most common words
 
     freq_df = pd.DataFrame.from_dict(word_counter, orient='index', columns=['Frequency'])
     freq_df.index.name = 'Word'
@@ -75,17 +120,118 @@ def generate_frequency_analysis(df, selected_columns):
 
     st.dataframe(freq_df)
 
+    # Plot top 10 most repeated words
+    fig, ax = plt.subplots(figsize=(10, 6))
+    bars = ax.bar(freq_df['Word'], freq_df['Frequency'], color='#800040')
+    ax.set_xlabel('Word')
+    ax.set_ylabel('Frequency')
+    ax.set_title('Top 10 Most Repeated Words')
+    ax.set_xticklabels(freq_df['Word'], rotation=45)
+
+    # Add frequency labels inside the bars
+    for bar in bars:
+        yval = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width() / 2, yval, int(yval),
+                ha='center', va='bottom', color='black', fontsize=8, weight='bold')
+
+    st.pyplot(fig)
+
 def perform_sentiment_analysis(df, text_column):
     sid = SentimentIntensityAnalyzer()
     df['Sentiment Score'] = df[text_column].apply(lambda x: sid.polarity_scores(x)['compound'])
     return df
 
-def plot_sentiment_scores(df):
-    st.subheader("Sentiment Scores")
-    st.dataframe(df)
 
-    st.subheader("Sentiment Score Distribution")
-    st.bar_chart(df['Sentiment Score'])
+def plot_sentiment_scores(df):
+    st.subheader("Sentiment Analysis")
+    
+    sentiment_scores = df['Sentiment Score']
+    
+    # Plot the distribution of sentiment scores
+    fig, ax = plt.subplots()
+    sns.histplot(sentiment_scores, kde=True, color='#800040', ax=ax)
+    ax.set(xlabel="Sentiment Score", ylabel="Count")
+    ax.set_title("Distribution of Sentiment Scores")
+    st.pyplot(fig)
+
+    # Calculate the most representative sentiments
+    top_sentiments = sentiment_scores.value_counts().nlargest(5)
+    st.subheader("Most Representative Sentiments")
+    st.write(top_sentiments)
+
+def assign_emotions(df, text_column):
+    # Define emotions and associated keywords
+    emotions = {
+    'Happiness': ['happy', 'joy', 'excited', 'delighted'],
+    'Sadness': ['sad', 'depressed', 'gloomy', 'heartbroken'],
+    'Anger': ['angry', 'frustrated', 'outraged', 'irritated'],
+    'Jealousy': ['jealous', 'envious', 'covetous'],
+    'Love': ['love', 'adore', 'affection', 'romantic'],
+    'Fear': ['fear', 'anxiety', 'worried', 'terrified'],
+    'Surprise': ['surprise', 'astonished', 'amazed', 'shocked'],
+    'Disgust': ['disgust', 'repulsed', 'nauseated'],
+    'Confusion': ['confused', 'puzzled', 'perplexed'],
+    'Excitement': ['excitement', 'thrilled', 'eager'],
+    'Hope': ['hope', 'optimistic', 'expectation'],
+    'Pride': ['pride', 'proud', 'accomplished'],
+    'Guilt': ['guilt', 'regretful', 'remorseful'],
+    'Shame': ['shame', 'ashamed', 'humiliated'],
+    'Relief': ['relief', 'comforted', 'reassured'],
+    'Curiosity': ['curiosity', 'inquisitive', 'exploration'],
+    'Nostalgia': ['nostalgia', 'sentimental', 'remembrance'],
+    'Contempt': ['contempt', 'disdain', 'disrespectful'],
+    'Amusement': ['amusement', 'entertained', 'tickled'],
+    'Gratitude': ['gratitude', 'thankful', 'appreciative']
+    }
+
+    # Initialize emotion counter
+    emotion_counter = Counter()
+
+    # Iterate over each comment
+    for comment in df[text_column]:
+        comment = comment.lower()
+
+        # Check for keyword matches with emotions
+        for emotion, keywords in emotions.items():
+            for keyword in keywords:
+                if keyword in comment:
+                    emotion_counter[emotion] += 1
+                    break
+
+    # Get the top 5 most registered emotions
+    top_emotions = emotion_counter.most_common(5)
+
+    return top_emotions
+
+def perform_emotion_analysis(df, text_column):
+    sid = SentimentIntensityAnalyzer()
+    df['Sentiment Score'] = df[text_column].apply(lambda x: sid.polarity_scores(x)['compound'])
+
+    # Assign emotions to comments and get top 5 emotions
+    top_emotions = assign_emotions(df, text_column)
+
+    # Plot count of top emotions
+    fig, ax = plt.subplots()
+    x, y = zip(*top_emotions)
+    ax.bar(x, y, color='#800040')
+    ax.set(xlabel='Emotion', ylabel='Count')
+    ax.set_title('Count of Emotions in Comments')
+    ax.tick_params(axis='x', rotation=45)
+
+    # Add count labels
+    for i, count in enumerate(y):
+        ax.text(i, count, str(count), ha='center', va='bottom', color='black')
+
+    # Print the full table of emotion counts
+    emotion_table = pd.DataFrame(top_emotions, columns=['Emotion', 'Count'])
+    total_count = emotion_table['Count'].sum()
+    emotion_table.loc[len(emotion_table)] = ['Total', total_count]
+    st.dataframe(emotion_table.style.set_caption('Emotion Count'))
+
+    # Display the plot
+    st.pyplot(fig)
+
+    return df
 
 def main():
     st.title("NLP Analysis App - Main")
@@ -123,6 +269,14 @@ def main():
 
                 elif analysis_option == "Frequency":
                     generate_frequency_analysis(df, selected_columns)
+
+                elif analysis_option == "Text Summarization":
+                    text_column = st.selectbox("Select the column containing the text", selected_columns)
+                    perform_text_summarization(selected_df, text_column)
+
+                elif analysis_option == "Emotions":
+                    text_column = st.selectbox("Select the column containing the text", selected_columns)
+                    perform_emotion_analysis(selected_df, text_column)
     
     if st.button("Home"):
         st.experimental_set_query_params(page="menu")
