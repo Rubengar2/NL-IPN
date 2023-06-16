@@ -76,32 +76,31 @@ def perform_text_summarization(df, text_column):
         summary = generate_summary(selected_text)
         st.write(summary)
 
-def generate_wordcloud(df, selected_columns, mask_image_path):
+def generate_wordcloud(df, selected_columns):
     text = ""
     for column in selected_columns:
         text += " ".join(df[column].astype(str)) + " "
 
-    mask_image = np.array(Image.open(mask_image_path))
-
-    wordcloud = WordCloud(background_color='white', mask=mask_image).generate(text)
-
-    # Apply colors from the mask image to the Wordcloud
-    image_colors = ImageColorGenerator(mask_image)
-    colored_wordcloud = wordcloud.recolor(color_func=image_colors)
-
-    # Convert the Wordcloud to an image
-    image = colored_wordcloud.to_image()
+    # Generate Wordcloud using default mask image
+    wordcloud = WordCloud(background_color='white', width=800, height=400, colormap='gist_rainbow', color_func=lambda *args, **kwargs: "#800040").generate(text)
 
     # Display the Wordcloud image
-    st.image(image)
+    plt.figure(figsize=(12, 6))
+    plt.imshow(wordcloud, interpolation='bilinear')
+    plt.axis("off")
+    st.pyplot(plt.gcf())
+
+    # Convert the Wordcloud to an image
+    wordcloud_image = wordcloud.to_image()
 
     # Create an in-memory stream for storing the image data
     img_bytes = io.BytesIO()
-    image.save(img_bytes, format='PNG')
+    wordcloud_image.save(img_bytes, format='PNG')
     img_bytes.seek(0)
 
     # Prompt the user to download the Wordcloud image
     st.download_button("Download Wordcloud", data=img_bytes, file_name='wordcloud.png', mime='image/png')
+
 
 def generate_frequency_analysis(df, selected_columns):
     text = ""
@@ -262,10 +261,7 @@ def main():
                     plot_sentiment_scores(sentiment_df)
 
                 elif analysis_option == "Wordcloud":
-                    mask_image_path = st.file_uploader("Upload a mask image", type=["png"])
-
-                    if mask_image_path is not None:
-                        generate_wordcloud(df, selected_columns, mask_image_path)
+                    generate_wordcloud(df, selected_columns) 
 
                 elif analysis_option == "Frequency":
                     generate_frequency_analysis(df, selected_columns)
