@@ -80,24 +80,34 @@ def generate_wordcloud(df, selected_columns):
     for column in selected_columns:
         text += " ".join(df[column].astype(str)) + " "
 
-    # Generate Wordcloud using default mask image
-    wordcloud = WordCloud(background_color='white', width=800, height=400, colormap='gist_rainbow', color_func=lambda *args, **kwargs: "#800040").generate(text)
+    # Tokenización en español
+    words = word_tokenize(text, language='spanish')
 
-    # Display the Wordcloud image
+    # Eliminar stopwords en español y puntuación
+    stop_words = set(stopwords.words("spanish"))
+    words = [word for word in words if word.lower() not in stop_words and word.isalpha()]
+
+    # Unir las palabras procesadas
+    processed_text = " ".join(words)
+
+    # Generar la Wordcloud usando una máscara e imagen predeterminada
+    wordcloud = WordCloud(background_color='white', width=800, height=400, colormap='gist_rainbow', color_func=lambda *args, **kwargs: "#800040").generate(processed_text)
+
+    # Mostrar la imagen de la Wordcloud
     plt.figure(figsize=(12, 6))
     plt.imshow(wordcloud, interpolation='bilinear')
     plt.axis("off")
     st.pyplot(plt.gcf())
 
-    # Convert the Wordcloud to an image
+    # Convertir la Wordcloud a una imagen
     wordcloud_image = wordcloud.to_image()
 
-    # Create an in-memory stream for storing the image data
+    # Crear un flujo en memoria para almacenar los datos de la imagen
     img_bytes = io.BytesIO()
     wordcloud_image.save(img_bytes, format='PNG')
     img_bytes.seek(0)
 
-    # Prompt the user to download the Wordcloud image
+    # Proporcionar un botón de descarga para la imagen de la Wordcloud
     st.download_button("Download Wordcloud", data=img_bytes, file_name='wordcloud.png', mime='image/png')
 
 
@@ -230,9 +240,10 @@ def perform_emotion_analysis(df, text_column):
     st.pyplot(fig)
 
     return df
-
+#inicio de la funcion principal
 def main():
-    st.title("NLP Analysis App - Main v.0.0.1")
+    st.title("NLP Analysis App - Main v.0.0.2")
+    #Cambio en la version titulo    
 
     uploaded_file = st.file_uploader("Upload a file", type=["csv", "txt", "xls", "xlsx"])
 
