@@ -13,7 +13,6 @@ from nltk.corpus import stopwords
 from nltk.sentiment import SentimentIntensityAnalyzer
 from collections import Counter
 import matplotlib.pyplot as plt
-import seaborn as sns
 from nltk.tokenize import word_tokenize, sent_tokenize
 from heapq import nlargest
 nltk.download('vader_lexicon')
@@ -21,9 +20,9 @@ nltk.download('stopwords')
 nltk.download('punkt')
 
 def remove_stopwords(text):
-    stop_words = set(stopwords.words("english"))
+    stop_words = set(stopwords.words("spanish"))
     punctuation = set(string.punctuation)
-    words = nltk.word_tokenize(text)
+    words = nltk.word_tokenize(text, language='spanish')  # Tokenización en español
     words = [word for word in words if word.lower() not in stop_words and word not in punctuation]
     return " ".join(words)
 
