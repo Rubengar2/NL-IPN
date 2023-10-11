@@ -232,7 +232,7 @@ def perform_emotion_analysis(df, text_column):
     return df
 
 def main():
-    st.title("NLP Analysis App - Main")
+    st.title("NLP Analysis App - Main v.0.0.1")
 
     uploaded_file = st.file_uploader("Upload a file", type=["csv", "txt", "xls", "xlsx"])
 
