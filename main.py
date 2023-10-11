@@ -193,21 +193,27 @@ def assign_emotions(df, text_column):
 }
 
 
-    # Initialize emotion counter
+    # Inicializar contador de emociones
     emotion_counter = Counter()
 
-    # Iterate over each comment
+    # Iterar sobre cada comentario
     for comment in df[text_column]:
         comment = comment.lower()
 
-        # Check for keyword matches with emotions
+        # Verificar coincidencias de palabras clave con emociones
         for emotion, keywords in emotions.items():
             for keyword in keywords:
                 if keyword in comment:
                     emotion_counter[emotion] += 1
-                    break
 
-    # Get the top 5 most registered emotions
+        # Considerar negaciones
+        if any(neg in comment for neg in ['no', 'nunca', 'jamás', 'sin']):
+            for emotion, keywords in emotions.items():
+                for keyword in keywords:
+                    if keyword in comment:
+                        emotion_counter[emotion] -= 1
+
+    # Obtener las 5 emociones más frecuentes
     top_emotions = emotion_counter.most_common(5)
 
     return top_emotions
@@ -241,9 +247,10 @@ def perform_emotion_analysis(df, text_column):
     st.pyplot(fig)
 
     return df
+
 #inicio de la funcion principal
 def main():
-    st.title("NLP Analysis App - Main v.0.0.3")
+    st.title("NLP Analysis App - Main v.0.0.4")
     #Cambio en la version titulo    
 
     uploaded_file = st.file_uploader("Upload a file", type=["csv", "txt", "xls", "xlsx"])
