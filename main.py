@@ -170,27 +170,28 @@ def plot_sentiment_scores(df):
 def assign_emotions(df, text_column):
     # Define emotions and associated keywords
     emotions = {
-    'Happiness': ['happy', 'joy', 'excited', 'delighted'],
-    'Sadness': ['sad', 'depressed', 'gloomy', 'heartbroken'],
-    'Anger': ['angry', 'frustrated', 'outraged', 'irritated'],
-    'Jealousy': ['jealous', 'envious', 'covetous'],
-    'Love': ['love', 'adore', 'affection', 'romantic'],
-    'Fear': ['fear', 'anxiety', 'worried', 'terrified'],
-    'Surprise': ['surprise', 'astonished', 'amazed', 'shocked'],
-    'Disgust': ['disgust', 'repulsed', 'nauseated'],
-    'Confusion': ['confused', 'puzzled', 'perplexed'],
-    'Excitement': ['excitement', 'thrilled', 'eager'],
-    'Hope': ['hope', 'optimistic', 'expectation'],
-    'Pride': ['pride', 'proud', 'accomplished'],
-    'Guilt': ['guilt', 'regretful', 'remorseful'],
-    'Shame': ['shame', 'ashamed', 'humiliated'],
-    'Relief': ['relief', 'comforted', 'reassured'],
-    'Curiosity': ['curiosity', 'inquisitive', 'exploration'],
-    'Nostalgia': ['nostalgia', 'sentimental', 'remembrance'],
-    'Contempt': ['contempt', 'disdain', 'disrespectful'],
-    'Amusement': ['amusement', 'entertained', 'tickled'],
-    'Gratitude': ['gratitude', 'thankful', 'appreciative']
-    }
+    'Felicidad': ['feliz', 'alegría', 'emocionado', 'encantado'],
+    'Tristeza': ['triste', 'deprimido', 'melancólico', 'desconsolado'],
+    'Enojo': ['enojado', 'frustrado', 'indignado', 'irritado'],
+    'Celos': ['celoso', 'envidioso', 'codicioso'],
+    'Amor': ['amor', 'adorar', 'afecto', 'romántico'],
+    'Miedo': ['miedo', 'ansiedad', 'preocupado', 'aterrorizado'],
+    'Sorpresa': ['sorpresa', 'asombrado', 'asombrado', 'impactado'],
+    'Asco': ['asco', 'repulsión', 'náuseas'],
+    'Confusión': ['confundido', 'perplejo', 'desconcertado'],
+    'Emoción': ['emoción', 'emocionado', 'ansioso'],
+    'Esperanza': ['esperanza', 'optimista', 'expectativa'],
+    'Orgullo': ['orgullo', 'orgulloso', 'realizado'],
+    'Culpabilidad': ['culpa', 'arrepentido', 'remordimiento'],
+    'Vergüenza': ['vergüenza', 'avergonzado', 'humillado'],
+    'Alivio': ['alivio', 'consolado', 'tranquilizado'],
+    'Curiosidad': ['curiosidad', 'inquisitivo', 'exploración'],
+    'Nostalgia': ['nostalgia', 'sentimental', 'recuerdo'],
+    'Desprecio': ['desprecio', 'desprecio', 'irrespetuoso'],
+    'Diversión': ['diversión', 'entretenido', 'haciendo cosquillas'],
+    'Gratitud': ['gratitud', 'agradecido', 'apreciativo']
+}
+
 
     # Initialize emotion counter
     emotion_counter = Counter()
@@ -242,7 +243,7 @@ def perform_emotion_analysis(df, text_column):
     return df
 #inicio de la funcion principal
 def main():
-    st.title("NLP Analysis App - Main v.0.0.2")
+    st.title("NLP Analysis App - Main v.0.0.3")
     #Cambio en la version titulo    
 
     uploaded_file = st.file_uploader("Upload a file", type=["csv", "txt", "xls", "xlsx"])
