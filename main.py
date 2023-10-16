@@ -41,7 +41,7 @@ def generate_summary(text, num_sentences=3):
     sentences = sent_tokenize(text)
 
     # Remove stopwords from sentences
-    stop_words = set(stopwords.words('english'))
+    stop_words = set(stopwords.words('spanish'))
     word_frequencies = {}
     for word in word_tokenize(text):
         if word.lower() not in stop_words:
