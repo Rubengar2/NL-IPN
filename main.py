@@ -170,29 +170,29 @@ def plot_sentiment_scores(df):
 def assign_emotions(df, text_column):
     # Define emotions and associated keywords
     emotions = {
-    'Felicidad': ['feliz', 'alegría', 'emocionado', 'encantado'],
-    'Tristeza': ['triste', 'deprimido', 'melancólico', 'desconsolado'],
-    'Enojo': ['enojado', 'frustrado', 'indignado', 'irritado'],
-    'Celos': ['celoso', 'envidioso', 'codicioso'],
-    'Amor': ['amor', 'adorar', 'afecto', 'romántico'],
-    'Miedo': ['miedo', 'ansiedad', 'preocupado', 'aterrorizado'],
-    'Sorpresa': ['sorpresa', 'asombrado', 'asombrado', 'impactado'],
-    'Asco': ['asco', 'repulsión', 'náuseas'],
-    'Confusión': ['confundido', 'perplejo', 'desconcertado'],
-    'Emoción': ['emoción', 'emocionado', 'ansioso'],
-    'Esperanza': ['esperanza', 'optimista', 'expectativa'],
-    'Orgullo': ['orgullo', 'orgulloso', 'realizado'],
-    'Culpabilidad': ['culpa', 'arrepentido', 'remordimiento'],
-    'Vergüenza': ['vergüenza', 'avergonzado', 'humillado'],
-    'Alivio': ['alivio', 'consolado', 'tranquilizado'],
-    'Curiosidad': ['curiosidad', 'inquisitivo', 'exploración'],
-    'Nostalgia': ['nostalgia', 'sentimental', 'recuerdo'],
-    'Desprecio': ['desprecio', 'desprecio', 'irrespetuoso'],
-    'Diversión': ['diversión', 'entretenido', 'haciendo cosquillas'],
-    'Gratitud': ['gratitud', 'agradecido', 'apreciativo']
+    'Felicidad': ['feliz', 'alegría', 'emocionado', 'encantado', 'contento', 'extasiado', 'exuberante', 'jubiloso', 'radiante', 'satisfecho', 'eufórico', 'animado', 'triunfante', 'gozoso', 'festivo', 'optimista', 'esperanzado', 'alegre', 'positivo', 'bienestar'],
+    'Tristeza': ['triste', 'deprimido', 'melancólico', 'desconsolado', 'apenado', 'desesperado', 'abatido', 'desalentado', 'dolorido', 'melancolía', 'sombrío', 'lúgubre', 'melancolía', 'desolado', 'angustiado', 'penoso', 'sollozante', 'lamentable', 'desgarrador'],
+    'Enojo': ['enojado', 'frustrado', 'indignado', 'irritado', 'furioso', 'iracundo', 'rabioso', 'hostil', 'agresivo', 'resentido', 'furibundo', 'furioso', 'violento', 'explosivo', 'temperamental', 'enojón', 'belicoso', 'inflamado', 'acerbado'],
+    'Celos': ['celoso', 'envidioso', 'codicioso', 'desconfiado', 'inseguro', 'reservado', 'competitivo', 'amargado', 'despechado', 'celos enfermizos', 'competitivo', 'verde de envidia', 'enemistoso', 'obsesionado'],
+    'Amor': ['amor', 'adorar', 'afecto', 'romántico', 'apasionado', 'cariño', 'devoción', 'ternura', 'compromiso', 'entrega', 'fervor', 'fascinación', 'pasión', 'simpatía', 'intimidad', 'calidez', 'ternura', 'compasión', 'afecto profundo'],
+    'Miedo': ['miedo', 'ansiedad', 'preocupado', 'aterrorizado', 'temeroso', 'aterrado', 'asustado', 'nervioso', 'pavor', 'horror', 'espanto', 'aprensivo', 'alarmado', 'inquieto', 'tembloroso', 'paralizado', 'atónito', 'petrificado', 'inseguro'],
+    'Sorpresa': ['sorpresa', 'asombrado', 'asombrado', 'impactado', 'maravillado', 'perplejo', 'desconcertado', 'atónito', 'estupefacto', 'incrédulo', 'asombro', 'deslumbrado', 'pasmado', 'boquiabierto', 'atónito', 'asombroso', 'sobrecogido', 'aterrado'],
+    'Asco': ['asco', 'repulsión', 'náuseas', 'repugnancia', 'desagrado', 'aversión', 'desprecio', 'indignación', 'hostilidad', 'repugnante', 'nauseabundo', 'asqueroso', 'indignante', 'desagradable', 'molesto', 'hedor', 'abominable', 'intolerable'],
+    'Confusión': ['confundido', 'perplejo', 'desconcertado', 'perdido', 'desorientado', 'desconcertado', 'perplejidad', 'incertidumbre', 'indecisión', 'atolondrado', 'puzzled', 'dubitativo', 'perplejidad', 'misterioso', 'incomprensible', 'ambiguo', 'irracional', 'desconcierto'],
+    'Emoción': ['emoción', 'emocionado', 'ansioso', 'agitado', 'electrizado', 'excitado', 'emotivo', 'intenso', 'frenético', 'pasión', 'entusiasmo', 'impulsivo', 'ferviente', 'arrebatado', 'apasionado', 'vibrante', 'conmovido', 'aventurero'],
+    'Esperanza': ['esperanza', 'optimista', 'expectativa', 'confianza', 'ilusión', 'positivo', 'esperanzado', 'confiado', 'esperanzador', 'esperar', 'anticipación', 'deseo', 'fe', 'inspiración', 'promesa', 'visión', 'perspectiva', 'futuro', 'objetivo'],
+    'Orgullo': ['orgullo', 'orgulloso', 'realizado', 'satisfecho', 'vanidoso', 'triunfante', 'egocéntrico', 'engreído', 'altivo', 'arrogante', 'ególatra', 'imponente', 'presuntuoso', 'digno', 'soberbio', 'presumido', 'concepción', 'soberanía'],
+    'Culpabilidad': ['culpa', 'arrepentido', 'remordimiento', 'penitencia', 'lamento', 'autoacusación', 'compunción', 'confesión', 'avergonzado', 'inocencia', 'perdón', 'expiación', 'contrición', 'arrepentimiento', 'aflicción', 'pena', 'auto-reproche'],
+    'Vergüenza': ['vergüenza', 'avergonzado', 'humillado', 'mortificado', 'sonrojado', 'timidez', 'autoconciencia', 'reproche', 'degradación', 'desgracia', 'desdén', 'desprestigio', 'desdoro', 'invisibilidad', 'intolerancia', 'auto-aversión', 'inaceptabilidad'],
+    'Alivio': ['alivio', 'consolado', 'tranquilizado', 'sosegado', 'desahogo', 'sensación de liberación', 'calmado', 'relajado', 'despreocupado', 'gratificación', 'liberado', 'reconfortado', 'descansado', 'descargado', 'sosegado', 'pacificado', 'liviano'],
+    'Curiosidad': ['curiosidad', 'inquisitivo', 'exploración', 'interés', 'deseo de aprender', 'intriga', 'indagación', 'investigación', 'búsqueda', 'pregunta', 'asombro', 'estudio', 'apertura mental', 'novedad', 'interés intelectual', 'interés genuino'],
+    'Nostalgia': ['nostalgia', 'sentimental', 'recuerdo', 'añoranza', 'melancolía', 'recordar con cariño', 'memoria emocional', 'remembranza', 'saudade', 'recuerdo afectuoso', 'recordatorio', 'recordar', 'evocación', 'revivir', 'reflexión', 'memoria del pasado'],
+    'Desprecio': ['desprecio', 'desprecio', 'irrespetuoso', 'menosprecio', 'desdén', 'desaire', 'falta de respeto', 'ninguneo', 'denigración', 'rechazo', 'desestimación', 'desconsideración', 'desaprobación', 'desvalorización', 'ignorancia', 'menosprecio'],
+    'Diversión': ['diversión', 'entretenido', 'haciendo cosquillas', 'risas', 'juego', 'recreación', 'alegría festiva', 'regocijo', 'carcajadas', 'jovialidad', 'divertido', 'humor', 'sarcasmo', 'chispa', 'picardía', 'burla', 'travesura', 'locura'],
+    'Gratitud': ['gratitud', 'agradecido', 'apreciativo', 'reconocimiento', 'gracias', 'sentimiento de deuda', 'retribución', 'agradecimiento sincero', 'respeto', 'consideración', 'homenaje', 'devoción', 'gratitud profunda', 'dar las gracias', 'deuda de gratitud', 'obligado'],
 }
 
-
+    
     # Inicializar contador de emociones
     emotion_counter = Counter()
 
