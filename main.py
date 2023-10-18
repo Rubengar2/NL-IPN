@@ -194,7 +194,7 @@ def plot_emotion_distribution(df):
     ax.set_title("Distribución de Emociones")
     st.pyplot(fig)
 
-st.title("Análisis de comentarios en español en Español V.0.0.5")
+st.title("Análisis de Texto en Español")
 
 st.header("Carga de Datos")
 uploaded_file = st.file_uploader("Carga tu archivo de datos (CSV o Excel)", type=["csv", "xlsx"])
