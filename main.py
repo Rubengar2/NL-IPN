@@ -16,7 +16,6 @@ import matplotlib.pyplot as plt
 from nltk.tokenize import word_tokenize, sent_tokenize
 from nltk.corpus import stopwords
 from nltk.tokenize import sent_tokenize
-from transformers import T5ForConditionalGeneration, T5Tokenizer
 import random
 nltk.download('vader_lexicon')
 nltk.download('stopwords')
