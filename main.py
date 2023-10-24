@@ -8,6 +8,7 @@ from collections import Counter
 import io
 import nltk
 import os
+import torch
 import string
 from nltk.corpus import stopwords
 from nltk.sentiment import SentimentIntensityAnalyzer
@@ -16,7 +17,15 @@ import matplotlib.pyplot as plt
 from nltk.tokenize import word_tokenize, sent_tokenize
 from nltk.corpus import stopwords
 from nltk.tokenize import sent_tokenize
-import random
+from transformers import T5ForConditionalGeneration, T5Tokenizer
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+model_name = "finiteautomata/beto-emotion-analysis"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModelForSequenceClassification.from_pretrained(model_name)
+
+
 nltk.download('vader_lexicon')
 nltk.download('stopwords')
 nltk.download('punkt')
@@ -24,7 +33,7 @@ nltk.download('punkt')
 def remove_stopwords(text):
     stop_words = set(stopwords.words("spanish"))
     punctuation = set(string.punctuation)
-    words = nltk.word_tokenize(text, language='spanish')  # Tokenización en español
+    words = nltk.word_tokenize(text, language='spanish')
     words = [word for word in words if word.lower() not in stop_words and word not in punctuation]
     return " ".join(words)
 
@@ -33,10 +42,12 @@ def render_sidebar(df):
     selected_columns = st.sidebar.multiselect("Selecciona las columnas para el análisis de NLP", df.columns)
 
     st.sidebar.title("Análisis de NLP")
-    analysis_option = st.sidebar.selectbox("Selecciona una opción de análisis de NLP", ["Ninguno", "Análisis de Sentimiento", 
+    analysis_option = st.sidebar.selectbox("Selecciona una opción de análisis de NLP", ["Ninguno", "Análisis de Sentimiento",
                                                                           "Emociones", "Nube de Palabras", "Frecuencia", "Resumen de Texto"])
 
-    return selected_columns, analysis_option
+    sentiment_label = st.sidebar.selectbox("Selecciona el tipo de comentarios", ["Todos", "Positivos", "Negativos"])
+
+    return selected_columns, analysis_option, sentiment_label
 
 def generate_summary_with_t5(text, max_length=200):
     model = T5ForConditionalGeneration.from_pretrained("t5-small")
@@ -71,7 +82,8 @@ def generate_wordcloud(df, selected_columns):
 
     processed_text = " ".join(words)
 
-    wordcloud = WordCloud(background_color='white', width=800, height=400, colormap='gist_rainbow', color_func=lambda *args, **kwargs: "#800040").generate(processed_text)
+    wordcloud = WordCloud(background_color='white', width=800, height=400, colormap='gist_rainbow',
+                          color_func=lambda *args, **kwargs: "#800040").generate(processed_text)
 
     plt.figure(figsize=(12, 6))
     plt.imshow(wordcloud, interpolation='bilinear')
@@ -117,9 +129,18 @@ def generate_frequency_analysis(df, selected_columns):
 
     st.pyplot(fig)
 
-def perform_sentiment_analysis(df, text_column):
+def perform_sentiment_analysis(df, text_column, sentiment_label):
     sid = SentimentIntensityAnalyzer()
     df['Puntaje de Sentimiento'] = df[text_column].apply(lambda x: sid.polarity_scores(x)['compound'])
+
+    if sentiment_label == "Positivos":
+        df = df[df['Puntaje de Sentimiento'] > 0]
+    elif sentiment_label == "Negativos":
+        df = df[df['Puntaje de Sentimiento'] < 0]
+
+    st.subheader("Comentarios con Polaridad " + sentiment_label)
+    st.dataframe(df)
+
     return df
 
 def plot_sentiment_scores(df):
@@ -137,54 +158,47 @@ def plot_sentiment_scores(df):
     st.subheader("Sentimientos Más Representativos")
     st.write(top_sentiments)
 
-def assign_emotions(df, text_column):
-    emociones = {
-    'Felicidad': ['feliz', 'alegría', 'emocionado', 'encantado', 'extasiado', 'jubiloso', 'contento', 'eufórico', 'radiante', 'sonriente', 'gozoso', 'regocijo', 'exultante', 'euforia', 'divertido', 'pleno', 'venturoso', 'afortunado'],
-    'Tristeza': ['triste', 'deprimido', 'melancólico', 'desconsolado', 'apenado', 'abatido', 'lloroso', 'desesperado', 'melancolía', 'penoso', 'lamentable', 'agonía', 'desgarrador', 'desolado', 'amargado', 'sombrío', 'duro', 'sin esperanza'],
-    'Enojo': ['enojado', 'frustrado', 'indignado', 'irritado', 'furioso', 'rabioso', 'exasperado', 'agresivo', 'hostil', 'iracundo', 'ardiente', 'belicoso', 'vengativo', 'furibundo', 'colérico', 'enfadado', 'resentido', 'resentimiento'],
-    'Celos': ['celoso', 'envidioso', 'codicioso', 'inseguro', 'competitivo', 'resentido', 'desconfiado', 'obsesivo', 'posesivo', 'verde de envidia', 'desear lo que otros tienen', 'lamentar el éxito ajeno', 'recelo', 'despecho', 'invidiar', 'celotipia', 'avaricia'],
-    'Amor': ['amor', 'adorar', 'afecto', 'romántico', 'apasionado', 'ternura', 'cariño', 'devoción', 'comprensión', 'afinidad', 'pasión ardiente', 'flechazo', 'idilio', 'encantamiento', 'afecto profundo', 'amor eterno', 'seducción', 'cortejar'],
-    'Miedo': ['miedo', 'ansiedad', 'preocupado', 'aterrorizado', 'temeroso', 'nervioso', 'asustado', 'pánico', 'horror', 'espanto', 'terrorífico', 'inseguridad', 'aprehensión', 'miedoso', 'apatía', 'temor paralizante', 'pavor', 'miedo irracional'],
-    'Sorpresa': ['sorpresa', 'asombrado', 'impactado', 'maravillado', 'atónito', 'estupefacto', 'sobrecogido', 'asombro', 'desconcertado', 'asombroso', 'deslumbrante', 'estupefacción', 'deslumbrado', 'estático', 'perplejidad', 'deslumbramiento', 'maravilloso', 'incredulidad'],
-    'Asco': ['asco', 'repulsión', 'náuseas', 'repugnancia', 'aversión', 'desagrado', 'nauseabundo', 'indignante', 'abominable', 'asqueroso', 'repelente', 'detestable', 'vómito', 'antipatía', 'desprecio', 'repulsivo', 'asquerosidad'],
-    'Confusión': ['confundido', 'perplejo', 'desconcertado', 'desorientado', 'perdido', 'atolondrado', 'despistado', 'incertidumbre', 'ambigüedad', 'perplejidad', 'desconcertante', 'desordenado', 'lío', 'caos', 'confusión mental', 'desorientación', 'desubicado', 'desconcierto'],
-    'Emoción': ['emoción', 'emocionado', 'ansioso', 'sentimiento', 'pasión', 'excitación', 'inquietud', 'entusiasmo', 'agitado', 'sentir', 'estímulo', 'experiencia', 'reacción', 'sensación', 'intensidad', 'sensibilidad', 'vivacidad', 'efervescencia'],
-    'Esperanza': ['esperanza', 'optimista', 'expectativa', 'esperanzado', 'ilusión', 'positivo', 'confiado', 'esperar', 'anhelo', 'fe', 'anticipación', 'esperanzador', 'promesa', 'aspiración', 'metas', 'visión', 'optimismo'],
-    'Orgullo': ['orgullo', 'orgulloso', 'realizado', 'satisfacción', 'egocentrismo', 'vanidad', 'arrogancia', 'triunfante', 'dignidad', 'soberbia', 'autoestima', 'logro', 'gloria', 'respeto propio', 'autoafirmación', 'alabanza', 'autoconfianza'],
-    'Culpabilidad': ['culpa', 'arrepentido', 'remordimiento', 'culpable', 'penitencia', 'lamentar', 'autoacusación', 'vergüenza', 'autocondena', 'autoreproche', 'culpabilidad moral', 'culpabilidad emocional', 'autoexigencia', 'autopunición', 'inocencia perdida', 'perdón', 'autocrítica'],
-    'Vergüenza': ['vergüenza', 'avergonzado', 'humillado', 'sonrojado', 'inhibición', 'desprestigio', 'desgracia', 'timidez', 'autoconciencia', 'bochorno', 'mortificación', 'incomodidad', 'arrepentimiento', 'sentimiento de culpa', 'sonrojo', 'disgusto', 'vergonzoso'],
-    'Alivio': ['alivio', 'consolado', 'tranquilizado', 'sosiego', 'respiro', 'relajación', 'descanso', 'paz', 'desahogo', 'liberación', 'relevo', 'reconfortante', 'relief', 'relación', 'esperanza cumplida', 'calma', 'seguridad'],
-    'Curiosidad': ['curiosidad', 'inquisitivo', 'exploración', 'interés', 'inquietud', 'deseo de saber', 'preguntas', 'investigación', 'avidez', 'descubrimiento', 'indagación', 'curiosear', 'intriga', 'novedad', 'indagar', 'sed de conocimiento', 'saber más'],
-    'Nostalgia': ['nostalgia', 'sentimental', 'recuerdo', 'añoranza', 'melancolía', 'reminiscencia', 'tristeza por el pasado', 'retroceso', 'recuerdos pasados', 'recordar', 'memoria', 'melancólico', 'suspiro', 'recordar con cariño', 'volver atrás', 'pasado'],
-    }
+def perform_emotion_analysis_beto(comments):
+    emotions = []
+    for comment in comments:
+        inputs = tokenizer(comment, padding=True, truncation=True, return_tensors="pt", max_length=128)
+        with torch.no_grad():
+            outputs = model(**inputs)
+            predicted_label = torch.argmax(outputs.logits, dim=1).item()
+        emotion_labels = ["anger", "disgust", "fear", "joy", "sadness", "surprise"]
+        
+        # Asegúrate de que la etiqueta generada esté dentro del rango válido
+        if predicted_label < 0:
+            predicted_label = 0
+        elif predicted_label >= len(emotion_labels):
+            predicted_label = len(emotion_labels) - 1
+        
+        emotion = emotion_labels[predicted_label]
+        emotions.append(emotion)
+    return emotions
 
-    def get_emotion(text):
-        emotions_detected = {emotion: 0 for emotion in emociones}
-        text = text.lower()
-        words = text.split()
 
-        for word in words:
-            for emotion, keywords in emociones.items():
-                if word in keywords:
-                    emotions_detected[emotion] += 1
-
-        max_emotion = max(emotions_detected, key=emotions_detected.get)
-        return max_emotion
-
-    df['Emoción Dominante'] = df[text_column].apply(get_emotion)
-    return df
-
-def plot_emotion_distribution(df):
+def plot_emotion_distribution(df, selected_columns):
     st.subheader("Análisis de Emociones")
-    emotion_counts = df['Emoción Dominante'].value_counts()
+    
+    emotion_counts = perform_emotion_analysis_beto(df[selected_columns[0]])
+    
     st.write(emotion_counts)
 
+    # Create a bar plot
     fig, ax = plt.subplots()
-    emotion_counts.plot(kind='bar', color='#800040', ax=ax)
+    unique_emotions = list(set(emotion_counts))  # Get unique emotions
+    emotion_counts = [emotion_counts.count(emotion) for emotion in unique_emotions]  # Count occurrences
+
+    ax.bar(unique_emotions, emotion_counts, color='#800040')
     ax.set_xlabel("Emoción")
     ax.set_ylabel("Conteo")
     ax.set_title("Distribución de Emociones")
+    plt.xticks(rotation=45)
     st.pyplot(fig)
+
+
+emolex_lexicon = pd.read_csv('Spanish-NRC-EmoLex.txt', encoding='latin1', sep='\t')
 
 st.title("Análisis de Texto en Español")
 
@@ -202,19 +216,22 @@ else:
     st.info("Carga un archivo de datos para continuar.")
 
 if 'df' in locals():
-    selected_columns, analysis_option = render_sidebar(df)
+    selected_columns, analysis_option, sentiment_label = render_sidebar(df)
 
     if selected_columns:
         st.header("Datos Seleccionados")
         st.dataframe(df[selected_columns])
 
     if analysis_option == "Análisis de Sentimiento":
-        df = perform_sentiment_analysis(df, selected_columns[0])
+        df = perform_sentiment_analysis(df, selected_columns[0], sentiment_label)
         plot_sentiment_scores(df)
 
-    elif analysis_option == "Emociones":
-        df = assign_emotions(df, selected_columns[0])
-        plot_emotion_distribution(df)
+    if analysis_option == "Emociones":
+        emotions = perform_emotion_analysis_beto(df[selected_columns[0]])
+        plot_emotion_distribution(df, selected_columns)
+        df['Emoción Dominante'] = emotions
+        emotion_counts = df['Emoción Dominante'].value_counts()
+        st.write(emotion_counts)
 
     elif analysis_option == "Nube de Palabras":
         generate_wordcloud(df, selected_columns)
