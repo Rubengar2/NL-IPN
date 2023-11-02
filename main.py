@@ -43,11 +43,17 @@ def render_sidebar(df):
 
     st.sidebar.title("Análisis de NLP")
     analysis_option = st.sidebar.selectbox("Selecciona una opción de análisis de NLP", ["Ninguno", "Análisis de Sentimiento",
-                                                                          "Emociones", "Nube de Palabras", "Frecuencia", "Resumen de Texto"])
+                                                                          "Emociones", "Sumarización"])
+
+    sub_analysis_option = None
+
+    if analysis_option == "Sumarización":
+        sub_analysis_option = st.sidebar.selectbox("Selecciona un tipo de sumarización", ["Nube de Palabras", "Frecuencia", "Resumen de Texto"])
 
     sentiment_label = st.sidebar.selectbox("Selecciona el tipo de comentarios", ["Todos", "Positivos", "Negativos"])
 
-    return selected_columns, analysis_option, sentiment_label
+    return selected_columns, analysis_option, sub_analysis_option, sentiment_label
+
 
 def generate_summary_with_t5(text, max_length=200):
     model = T5ForConditionalGeneration.from_pretrained("t5-small")
@@ -258,7 +264,7 @@ else:
     st.info("Carga un archivo de datos para continuar.")
 
 if 'df' in locals():
-    selected_columns, analysis_option, sentiment_label = render_sidebar(df)
+    selected_columns, analysis_option, sub_analysis_option, sentiment_label = render_sidebar(df)
 
     if selected_columns:
         st.header("Datos Seleccionados")
@@ -275,13 +281,15 @@ if 'df' in locals():
         emotion_counts = df['Emoción Dominante'].value_counts()
         st.write(emotion_counts)
 
-    elif analysis_option == "Nube de Palabras":
-        generate_wordcloud(df, selected_columns, sentiment_label)
+    if analysis_option == "Sumarización":
+        st.subheader("Sumarización de Texto")
+        sub_analysis_option = st.selectbox("Selecciona un tipo de sumarización", ["Nube de Palabras", "Análisis de Frecuencia", "Resumen de Texto"])
 
-    elif analysis_option == "Frecuencia":
-        generate_frequency_analysis(df, selected_columns, sentiment_label)
+        if sub_analysis_option == "Nube de Palabras":
+            generate_wordcloud(df, selected_columns, sentiment_label)
 
-    elif analysis_option == "Resumen de Texto":
-        perform_text_summarization(df, selected_columns[0])
-        
-        
+        if sub_analysis_option == "Análisis de Frecuencia":
+            generate_frequency_analysis(df, selected_columns, sentiment_label)
+
+        if sub_analysis_option == "Resumen de Texto":
+            perform_text_summarization(df, selected_columns[0])
