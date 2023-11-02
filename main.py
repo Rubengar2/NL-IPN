@@ -70,12 +70,20 @@ def perform_text_summarization(df, text_column):
         summary = generate_summary_with_t5(combined_text)
         st.write(summary)
 
-def generate_wordcloud(df, selected_columns):
+def generate_wordcloud(df, selected_columns, sentiment_label):
     text = ""
     for column in selected_columns:
         text += " ".join(df[column].astype(str)) + " "
 
-    words = word_tokenize(text, language='spanish')
+    sid = SentimentIntensityAnalyzer()
+    df['Puntaje de Sentimiento'] = df[selected_columns[0]].apply(lambda x: sid.polarity_scores(x)['compound'])
+
+    if sentiment_label == "Positivos":
+        df = df[df['Puntaje de Sentimiento'] > 0]
+    elif sentiment_label == "Negativos":
+        df = df[df['Puntaje de Sentimiento'] < 0]
+
+    words = word_tokenize(" ".join(df[selected_columns[0]].astype(str)), language='spanish')
 
     stop_words = set(stopwords.words("spanish"))
     words = [word for word in words if word.lower() not in stop_words and word.isalpha()]
@@ -98,11 +106,22 @@ def generate_wordcloud(df, selected_columns):
 
     st.download_button("Descargar Nube de Palabras", data=img_bytes, file_name='nube_de_palabras.png', mime='image/png')
 
-def generate_frequency_analysis(df, selected_columns):
+def generate_frequency_analysis(df, selected_columns, sentiment_label):
     text = ""
     for column in selected_columns:
         text += " ".join(df[column].astype(str)) + " "
 
+    # Calcular los puntajes de sentimiento para todos los comentarios
+    sid = SentimentIntensityAnalyzer()
+    df['Puntaje de Sentimiento'] = df[selected_columns[0]].apply(lambda x: sid.polarity_scores(x)['compound'])
+
+    if sentiment_label == "Positivos":
+        df = df[df['Puntaje de Sentimiento'] > 0]
+    elif sentiment_label == "Negativos":
+        df = df[df['Puntaje de Sentimiento'] < 0]
+
+    # Realizar el análisis de frecuencia
+    text = " ".join(df[selected_columns[0]].astype(str))
     text = remove_stopwords(text)
 
     word_list = text.split()
@@ -158,7 +177,7 @@ def plot_sentiment_scores(df):
     st.subheader("Sentimientos Más Representativos")
     st.write(top_sentiments)
 
-def perform_emotion_analysis_beto(comments):
+def perform_emotion_analysis_beto(comments, sentiment_label):
     emotions = []
     for comment in comments:
         inputs = tokenizer(comment, padding=True, truncation=True, return_tensors="pt", max_length=128)
@@ -175,30 +194,53 @@ def perform_emotion_analysis_beto(comments):
         
         emotion = emotion_labels[predicted_label]
         emotions.append(emotion)
+    
+    # Filtra los comentarios en función del sentimiento
+    if sentiment_label == "Positivos":
+        emotions = [emotion for emotion in emotions if emotion in ["joy", "surprise"]]
+    elif sentiment_label == "Negativos":
+        emotions = [emotion for emotion in emotions if emotion in ["anger", "disgust", "fear", "sadness"]]
+    
     return emotions
 
-
-def plot_emotion_distribution(df, selected_columns):
+def plot_emotion_distribution(df, selected_columns, sentiment_label):
     st.subheader("Análisis de Emociones")
-    
-    emotion_counts = perform_emotion_analysis_beto(df[selected_columns[0]])
-    
-    st.write(emotion_counts)
+
+    # Filtra los comentarios en función del sentimiento
+    emotions = perform_emotion_analysis_beto(df[selected_columns[0]], sentiment_label)
+
+    # Mapeo de emociones en inglés a español
+    emotion_mapping = {
+        "anger": "enojo",
+        "disgust": "asco",
+        "fear": "miedo",
+        "joy": "alegría",
+        "sadness": "tristeza",
+        "surprise": "sorpresa"
+    }
+
+    emotions_in_spanish = [emotion_mapping[emotion] for emotion in emotions]
+
+    st.write(emotions_in_spanish)
 
     # Create a bar plot
     fig, ax = plt.subplots()
-    unique_emotions = list(set(emotion_counts))  # Get unique emotions
-    emotion_counts = [emotion_counts.count(emotion) for emotion in unique_emotions]  # Count occurrences
+    unique_emotions = list(set(emotions_in_spanish))  # Get unique emotions
+    emotion_counts = [emotions_in_spanish.count(emotion) for emotion in unique_emotions]  # Count occurrences
 
     ax.bar(unique_emotions, emotion_counts, color='#800040')
     ax.set_xlabel("Emoción")
     ax.set_ylabel("Conteo")
     ax.set_title("Distribución de Emociones")
     plt.xticks(rotation=45)
+
+    # Agregar etiquetas con números de conteo en las barras
+    for i, v in enumerate(emotion_counts):
+        ax.text(i, v, str(v), color='black', ha='center', va='bottom', fontsize=8, weight='bold')
+
     st.pyplot(fig)
 
 
-emolex_lexicon = pd.read_csv('Spanish-NRC-EmoLex.txt', encoding='latin1', sep='\t')
 
 st.title("Análisis de Texto en Español")
 
@@ -227,17 +269,19 @@ if 'df' in locals():
         plot_sentiment_scores(df)
 
     if analysis_option == "Emociones":
-        emotions = perform_emotion_analysis_beto(df[selected_columns[0]])
-        plot_emotion_distribution(df, selected_columns)
+        emotions = perform_emotion_analysis_beto(df[selected_columns[0]], sentiment_label)
+        plot_emotion_distribution(df, selected_columns, sentiment_label)
         df['Emoción Dominante'] = emotions
         emotion_counts = df['Emoción Dominante'].value_counts()
         st.write(emotion_counts)
 
     elif analysis_option == "Nube de Palabras":
-        generate_wordcloud(df, selected_columns)
+        generate_wordcloud(df, selected_columns, sentiment_label)
 
     elif analysis_option == "Frecuencia":
-        generate_frequency_analysis(df, selected_columns)
+        generate_frequency_analysis(df, selected_columns, sentiment_label)
 
     elif analysis_option == "Resumen de Texto":
         perform_text_summarization(df, selected_columns[0])
+        
+        
