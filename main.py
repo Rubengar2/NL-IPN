@@ -30,6 +30,13 @@ nltk.download('vader_lexicon')
 nltk.download('stopwords')
 nltk.download('punkt')
 
+def mostrar_info_creadores():
+    st.sidebar.markdown("## Acerca de")
+    st.sidebar.info("""
+    Esta aplicación fue desarrollada por García Rubén y Cervantes Valdez Victor como prototipo para ser 
+    parte del proyecto de grado para la ESIME ZACATECNO del IPN en la generación 2019-2024
+    """)
+
 def remove_stopwords(text):
     stop_words = set(stopwords.words("spanish"))
     punctuation = set(string.punctuation)
@@ -39,18 +46,23 @@ def remove_stopwords(text):
 
 def render_sidebar(df):
     st.sidebar.title("Selección de Columnas")
-    selected_columns = st.sidebar.multiselect("Selecciona las columnas para el análisis de NLP", df.columns)
+    selected_columns = st.sidebar.multiselect("Selecciona las columnas para el análisis de NLP",
+                                              df.columns, help="Escoge una o más columnas de tu dataset para el análisis.")
 
     st.sidebar.title("Análisis de NLP")
-    analysis_option = st.sidebar.selectbox("Selecciona una opción de análisis de NLP", ["Ninguno", "Análisis de Sentimiento",
-                                                                          "Emociones", "Sumarización"])
+    analysis_option = st.sidebar.selectbox("Selecciona una opción de análisis de NLP",
+                                           ["Ninguno", "Análisis de Sentimiento", "Emociones", "Sumarización"],
+                                           help="Elige entre diferentes tipos de análisis de lenguaje natural.")
 
     sub_analysis_option = None
-
     if analysis_option == "Sumarización":
-        sub_analysis_option = st.sidebar.selectbox("Selecciona un tipo de sumarización", ["Nube de Palabras", "Frecuencia", "Resumen de Texto"])
+        sub_analysis_option = st.sidebar.selectbox("Selecciona un tipo de sumarización",
+                                                   ["Nube de Palabras", "Frecuencia", "Resumen de Texto"],
+                                                   help="Escoge el método de sumarización de texto que prefieras.")
 
-    sentiment_label = st.sidebar.selectbox("Selecciona el tipo de comentarios", ["Todos", "Positivos", "Negativos"])
+    sentiment_label = st.sidebar.selectbox("Selecciona el tipo de comentarios",
+                                           ["Todos", "Positivos", "Negativos"],
+                                           help="Filtra los comentarios por su polaridad: positiva, negativa o todos.")
 
     return selected_columns, analysis_option, sub_analysis_option, sentiment_label
 
@@ -248,7 +260,8 @@ def plot_emotion_distribution(df, selected_columns, sentiment_label):
 
 
 
-st.title("Análisis de Texto en Español")
+st.title("Implementación de un prototipo de herramienta Web de software para análisis de comentarios en Español con Procesamiento de Lenguaje Natural")
+mostrar_info_creadores()
 
 st.header("Carga de Datos")
 uploaded_file = st.file_uploader("Carga tu archivo de datos (CSV o Excel)", type=["csv", "xlsx"])
