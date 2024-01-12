@@ -10,7 +10,6 @@ import nltk
 import os
 import torch
 import string
-import re
 from nltk.corpus import stopwords
 from nltk.sentiment import SentimentIntensityAnalyzer
 from collections import Counter
@@ -31,99 +30,62 @@ nltk.download('vader_lexicon')
 nltk.download('stopwords')
 nltk.download('punkt')
 
-def remove_stopwords(comments):
+def mostrar_info_creadores():
+    st.sidebar.markdown("## Acerca de")
+    st.sidebar.info("""
+    Esta aplicación fue desarrollada por García Rubén y Cervantes Valdez Victor como prototipo para ser 
+    parte del proyecto de grado para la ESIME ZACATENCO del IPN en la generación 2019-2024
+    """)
+
+def remove_stopwords(text):
     stop_words = set(stopwords.words("spanish"))
     punctuation = set(string.punctuation)
-    words = nltk.word_tokenize(comments, language='spanish')
+    words = nltk.word_tokenize(text, language='spanish')
     words = [word for word in words if word.lower() not in stop_words and word not in punctuation]
     return " ".join(words)
 
-def clean_and_normalize_text(comments):
-    cleaned_text = re.sub(r'[^\w\s]', '', comments, flags=re.UNICODE)
-    cleaned_text = cleaned_text.lower()
-    return cleaned_text
-
-def filter_duplicate_tokens(sentences):
-    filtered_sentences = []
-    for sentence in sentences:
-        tokens = sentence.split()
-        filtered_tokens = [tokens[0]]  # Agrega el primer token
-        for i in range(1, len(tokens)):
-            if tokens[i] != tokens[i - 1]:
-                filtered_tokens.append(tokens[i])
-        filtered_sentence = ' '.join(filtered_tokens)
-        filtered_sentences.append(filtered_sentence)
-    return filtered_sentences
-
-def sentiment_analysis(comment):
-    sid = SentimentIntensityAnalyzer()
-    return sid.polarity_scores(comment)['compound']
-
-
 def render_sidebar(df):
     st.sidebar.title("Selección de Columnas")
-    selected_columns = st.sidebar.multiselect("Selecciona las columnas para el análisis de NLP", df.columns)
+    selected_columns = st.sidebar.multiselect("Selecciona las columnas para el análisis de NLP",
+                                              df.columns, help="Escoge una o más columnas de tu dataset para el análisis.")
 
     st.sidebar.title("Análisis de NLP")
-    analysis_option = st.sidebar.selectbox("Selecciona una opción de análisis de NLP", ["Ninguno", "Análisis de Sentimiento",
-                                                                          "Emociones", "Sumarización"])
+    analysis_option = st.sidebar.selectbox("Selecciona una opción de análisis de NLP",
+                                           ["Ninguno", "Análisis de Sentimiento", "Emociones", "Sumarización"],
+                                           help="Elige entre diferentes tipos de análisis de lenguaje natural.")
 
     sub_analysis_option = None
-
     if analysis_option == "Sumarización":
-        sub_analysis_option = st.sidebar.selectbox("Selecciona un tipo de sumarización", ["Nube de Palabras", "Frecuencia", "Resumen de Texto"])
+        sub_analysis_option = st.sidebar.selectbox("Selecciona un tipo de sumarización",
+                                                   ["Nube de Palabras", "Frecuencia", "Resumen de Texto"],
+                                                   help="Escoge el método de sumarización de texto que prefieras.")
 
-    sentiment_label = st.sidebar.selectbox("Selecciona el tipo de comentarios", ["Todos", "Positivos", "Negativos"])
+    sentiment_label = st.sidebar.selectbox("Selecciona el tipo de comentarios",
+                                           ["Todos", "Positivos", "Negativos"],
+                                           help="Filtra los comentarios por su polaridad: positiva, negativa o todos.")
 
     return selected_columns, analysis_option, sub_analysis_option, sentiment_label
 
 
-def generate_summary_with_t5(comments, max_length=2048, sentiment_label="Todos"):
-    # Inicializar el modelo y el tokenizador
-    model = T5ForConditionalGeneration.from_pretrained("t5-base")
-    tokenizer = T5Tokenizer.from_pretrained("t5-base")
+def generate_summary_with_t5(text, max_length=200):
+    model = T5ForConditionalGeneration.from_pretrained("t5-small")
+    tokenizer = T5Tokenizer.from_pretrained("t5-small")
 
-    # Combinar los comentarios en un solo texto
-    combined_text = " ".join(comments)
+    inputs = tokenizer.encode("resumir: " + text, return_tensors="pt", max_length=1024, truncation=True)
 
-# Filtrar comentarios según la etiqueta de sentimiento solicitada
-    if sentiment_label == "Positivos":
-        combined_text = " ".join(comment for comment in comments if sentiment_analysis(comment) > 0)
-    elif sentiment_label == "Negativos":
-        combined_text = " ".join(comment for comment in comments if sentiment_analysis(comment) < 0)
-
-    # Codificar y generar el resumen
-    input_ids = tokenizer.encode("resumir: " + combined_text, return_tensors="pt", max_length=2048, truncation=True)
-    summary_ids = model.generate(input_ids, max_length=max_length, min_length=10, length_penalty=8.0, num_beams=12, early_stopping=True)
+    summary_ids = model.generate(inputs, max_length=max_length, min_length=10, length_penalty=2.0, num_beams=4, early_stopping=True)
     summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
 
-    # Divide el resumen en oraciones
-    sentences = nltk.sent_tokenize(summary, language='spanish')
-
-    # Elimina tokens duplicados en cada oración del resumen
-    filtered_sentences = []
-    for sentence in sentences:
-        tokens = sentence.split()
-        filtered_tokens = [tokens[0]]  # Agrega el primer token
-        for i in range(1, len(tokens)):
-            if tokens[i] != tokens[i - 1]:
-                filtered_tokens.append(tokens[i])
-        filtered_sentence = ' '.join(filtered_tokens)
-        filtered_sentences.append(filtered_sentence)
-
-    # Retorna la lista de oraciones del resumen sin tokens duplicados
-    return filtered_sentences
+    return summary
 
 def perform_text_summarization(df, text_column):
     st.subheader("Resumen de Texto")
 
     selected_comments = df[text_column].astype(str).tolist()
 
-    cleaned_comments = [clean_and_normalize_text(comment) for comment in selected_comments]
-    cleaned_combined_text = " ".join(cleaned_comments)
-
     if st.button("Generar Resumen"):
-        summary = generate_summary_with_t5(cleaned_combined_text)
+        combined_text = " ".join(selected_comments)
+        summary = generate_summary_with_t5(combined_text)
         st.write(summary)
 
 def generate_wordcloud(df, selected_columns, sentiment_label):
@@ -298,7 +260,8 @@ def plot_emotion_distribution(df, selected_columns, sentiment_label):
 
 
 
-st.title("Análisis de Texto en Español")
+st.title("Implementación de un prototipo de herramienta Web de software para análisis de comentarios en Español con Procesamiento de Lenguaje Natural")
+mostrar_info_creadores()
 
 st.header("Carga de Datos")
 uploaded_file = st.file_uploader("Carga tu archivo de datos (CSV o Excel)", type=["csv", "xlsx"])
@@ -342,7 +305,4 @@ if 'df' in locals():
             generate_frequency_analysis(df, selected_columns, sentiment_label)
 
         if sub_analysis_option == "Resumen de Texto":
-            st.subheader("Resumen Generado:")
-            summary = generate_summary_with_t5(df[selected_columns[0]].astype(str).tolist())
-            filtered_summary = filter_duplicate_tokens(summary)
-            st.write(filtered_summary)
+            perform_text_summarization(df, selected_columns[0])
